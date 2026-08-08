@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { submitWeb3Form } from "../lib/web3forms";
 
 const programme = [
   ["10:30 AM", "Guest arrival"], ["10:45 AM", "Wedding processional"],
@@ -89,9 +90,14 @@ export default function Home() {
 
   async function submitRsvp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setStatus("sending");
-    const data = Object.fromEntries(new FormData(event.currentTarget));
-    const response = await fetch("/api/rsvp", { method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify(data) });
-    setStatus(response.ok ? "done" : "error");
+    const formData = new FormData(event.currentTarget);
+    formData.append("subject", `RSVP from ${formData.get("name")} — Allan & Shiphira`);
+    try {
+      await submitWeb3Form(formData);
+      setStatus("done");
+    } catch {
+      setStatus("error");
+    }
   }
 
   return <main>
