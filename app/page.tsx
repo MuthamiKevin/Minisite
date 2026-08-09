@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { submitWeb3Form } from "../lib/web3forms";
 
 const programme = [
@@ -18,6 +18,8 @@ const dressCode: [string, string][] = [
   ["#ede1d3", "Champagne"], ["#e3cfb4", "Sand"], ["#cbb49c", "Taupe"], ["#c7bfb4", "Stone"], ["#c08d53", "Camel"], ["#96745f", "Mocha"],
   ["#a7b08f", "Sage"], ["#7c7c4a", "Olive"], ["#b98b72", "Mocha Light"], ["#8b6a4f", "Soft Brown"], ["#e7dac7", "Cream"], ["#f1e9da", "Ivory"],
 ];
+
+const GOOGLE_PHOTOS_ALBUM_URL = "https://photos.app.goo.gl/REPLACE_WITH_YOUR_ALBUM_LINK";
 
 const milestones: [string | null, string][] = [
   ["2016", "Our paths crossed."],
@@ -37,6 +39,33 @@ function Leaf({ className }: { className?: string }) {
     <ellipse cx="100" cy="24" rx="9" ry="4" transform="rotate(25 100 24)" />
   </svg>;
 }
+
+function QuickLink({ icon, label, href, onClick }: { icon: ReactNode; label: string; href?: string; onClick?: () => void }) {
+  const Tag = href ? "a" : "button";
+  return <Tag className="quick-link" href={href} onClick={onClick}>
+    <span className="quick-icon">{icon}</span>{label}
+  </Tag>;
+}
+
+const icons = {
+  pin: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 21s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z" /><circle cx="12" cy="9" r="2.4" /></svg>,
+  flower: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="12" r="2" /><circle cx="12" cy="6" r="2.4" /><circle cx="12" cy="18" r="2.4" /><circle cx="6" cy="12" r="2.4" /><circle cx="18" cy="12" r="2.4" /></svg>,
+  calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9.5h16M8 3v4M16 3v4" /></svg>,
+  gift: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="9" width="16" height="10" rx="1" /><path d="M4 9h16M12 9v10" /><path d="M9 9c-1.5 0-2.5-1-2-2.3C7.5 5.3 9 5 10 6c.7.8 1 1.8 1 3M15 9c1.5 0 2.5-1 2-2.3C16.5 5.3 15 5 14 6c-.7.8-1 1.8-1 3" /></svg>,
+  envelope: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="6" width="18" height="13" rx="1.5" /><path d="M3 7l9 6 9-6" /></svg>,
+  upload: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>,
+  heart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 20s-7-4.3-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 5c-2.5 4.7-9.5 9-9.5 9z" /></svg>,
+  dove: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 11c2.5-3 6-3 8 0 1-3 4-6 10-5-3 1-5 3-6 6 3 .3 5 1.3 6 2-4 1.7-8 .7-10-1.3-1 2.7-4 4.3-8 3.3 2-1 3-2 3.5-3.3-1.7 0-2.7-.7-3.5-1.7z" /><circle cx="16" cy="8.5" r=".6" fill="currentColor" stroke="none" /></svg>,
+  sprig: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 21V9" /><path d="M12 9c0-4 3-6 6-6-1 4-3 6-6 6z" /><path d="M12 13c0-3-2-5-5-5 1 3 2 5 5 5z" /></svg>,
+  cross: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 3v18M7.5 8h9" /></svg>,
+};
+
+const values: [ReactNode, string, string][] = [
+  [icons.sprig, "Faith", "is our foundation"],
+  [icons.heart, "Love", "is our journey"],
+  [icons.dove, "Grace", "is our strength"],
+  [icons.sprig, "Family & Friends", "are our blessing"],
+];
 
 function Countdown() {
   const [time, setTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -64,11 +93,21 @@ export default function Home() {
   const [gateOpen, setGateOpen] = useState(false);
   const [gateClosing, setGateClosing] = useState(false);
   const [showTop, setShowTop] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   function openGate() {
     setGateClosing(true);
     document.body.style.overflow = "";
+    audioRef.current?.play().then(() => setMusicOn(true)).catch(() => {});
     setTimeout(() => setGateOpen(true), 650);
+  }
+
+  function toggleMusic() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) audio.play().then(() => setMusicOn(true)).catch(() => {});
+    else { audio.pause(); setMusicOn(false); }
   }
 
   useEffect(() => {
@@ -101,6 +140,11 @@ export default function Home() {
   }
 
   return <main>
+    <audio ref={audioRef} src="/music.mp3" loop preload="none" />
+    <button id="music-toggle" className={musicOn ? "playing" : ""} onClick={toggleMusic} aria-label={musicOn ? "Pause background music" : "Play background music"} aria-pressed={musicOn}>
+      <span className="music-bar" /><span className="music-bar" /><span className="music-bar" />
+    </button>
+
     {!gateOpen && <div className={`gate ${gateClosing ? "closing" : ""}`} role="presentation">
       <p className="gate-monogram">A &amp; S</p>
       <button className="gate-seal" onClick={openGate} aria-label="Open our wedding invitation"><span>A&amp;S</span></button>
@@ -144,6 +188,27 @@ export default function Home() {
       <p className="alt-verse">“He has made everything beautiful in its time.” <cite>— Ecclesiastes 3:11</cite></p>
     </section>
 
+    <section className="welcome section reveal">
+      <div className="welcome-copy">
+        <p className="eyebrow">Welcome</p>
+        <h2>We are so grateful<br/><i>you’re here.</i></h2>
+        {icons.heart}
+        <p>We can’t wait to celebrate this special day with the people we love most.</p>
+        <p className="welcome-sign">Allan &amp; Shiphira</p>
+      </div>
+
+      <div className="verse-card">
+        {icons.cross}
+        <p>A cord of three strands<br/>is not quickly broken.</p>
+        <cite>Ecclesiastes 4:12</cite>
+        <span className="verse-seal">A&amp;S</span>
+      </div>
+
+      <ul className="values-list">
+        {values.map(([icon, name, text]) => <li key={name}><span className="values-icon">{icon}</span><div><strong>{name}</strong><span>{text}</span></div></li>)}
+      </ul>
+    </section>
+
     <section className="journey section" id="journey">
       <div className="journey-copy reveal">
         <p className="eyebrow">Our journey</p>
@@ -159,7 +224,7 @@ export default function Home() {
       <p className="eyebrow centered">Wedding details</p><h2>Saturday, 17 October 2026</h2>
       <div className="detail-grid reveal">
         <article><span>01</span><h3>Ceremony</h3><p>Guest arrival from 10:30 AM<br/>Ceremony begins at 11:00 AM<br/>Celebration continues to 6:00 PM</p></article>
-        <article><span>02</span><h3>Venue</h3><p>Naipei Gardens<br/>Limuru, Kenya</p><a className="secondary" href="https://www.google.com/maps/search/?api=1&query=Naipei+Gardens+Limuru" target="_blank" rel="noreferrer">View map ↗</a></article>
+        <article className="venue-card"><span>02</span><h3>Venue</h3><p>Naipei Gardens<br/>Limuru, Kenya</p><a className="secondary" href="https://www.google.com/maps/search/?api=1&query=Naipei+Gardens+Limuru" target="_blank" rel="noreferrer">View map ↗</a></article>
       </div>
     </section>
 
@@ -189,7 +254,9 @@ export default function Home() {
     </section>
 
     <section className="sharing" id="gifts">
-      <article className="reveal"><p className="eyebrow">Photo sharing</p><h2>See our day through your eyes.</h2><p>Every smile, every laugh and every little moment matters to us. We’d love to relive our wedding through your photos and videos.</p><p className="scan-note">Simply scan the QR code below to share your memories with us.</p><div className="placeholder-qr">QR</div><strong>#AllanWedsShiphira</strong></article>
+      <article className="reveal"><p className="eyebrow">Photo sharing</p><h2>See our day through your eyes.</h2><p>Every smile, every laugh and every little moment matters to us. We’d love to relive our wedding through your photos and videos.</p>
+        <a className="upload-button" href={GOOGLE_PHOTOS_ALBUM_URL} target="_blank" rel="noreferrer">{icons.upload}Add your photos</a>
+        <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div><strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p><div className="gift-options"><span>M-PESA</span><span>QR Code</span><span>Bank details</span></div><small>Gift details will be shared with invited guests.</small></article>
     </section>
 
@@ -202,6 +269,16 @@ export default function Home() {
         <p><strong>Groom</strong>The [Surname] Family</p>
       </div>
     </section>
+
+    <nav className="quick-links" aria-label="Quick links">
+      <QuickLink icon={icons.pin} label="The Wedding" href="#details" />
+      <QuickLink icon={icons.flower} label="Style Guide" href="#style" />
+      <QuickLink icon={icons.calendar} label="Programme" href="#programme" />
+      <QuickLink icon={icons.gift} label="Gifts" href="#gifts" />
+      <QuickLink icon={icons.envelope} label="RSVP" onClick={() => setRsvpOpen(true)} />
+    </nav>
+
+    <div className="faith-band"><p>Faith · Hope · Love · Grace · Joy · Peace</p><p>We can’t wait to celebrate with you!</p></div>
 
     <footer><div className="footer-monogram">A <i>&amp;</i> S</div><p>Thank you for visiting our wedding website. Your love, prayers and support mean more to us than words can express, and we cannot wait to celebrate this special day with you.</p><strong>With love, Allan &amp; Shiphira</strong><span>To God be the Glory.</span></footer>
 
