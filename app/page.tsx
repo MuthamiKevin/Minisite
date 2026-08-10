@@ -60,13 +60,6 @@ const icons = {
   cross: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 3v18M7.5 8h9" /></svg>,
 };
 
-const values: [ReactNode, string, string][] = [
-  [icons.sprig, "Faith", "is our foundation"],
-  [icons.heart, "Love", "is our journey"],
-  [icons.dove, "Grace", "is our strength"],
-  [icons.sprig, "Family & Friends", "are our blessing"],
-];
-
 function Countdown() {
   const [time, setTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   useEffect(() => {
@@ -186,27 +179,6 @@ export default function Home() {
       <p>Until we say “I do”</p>
       <Countdown />
       <p className="alt-verse">“He has made everything beautiful in its time.” <cite>— Ecclesiastes 3:11</cite></p>
-    </section>
-
-    <section className="welcome section reveal">
-      <div className="welcome-copy">
-        <p className="eyebrow">Welcome</p>
-        <h2>We are so grateful<br/><i>you’re here.</i></h2>
-        {icons.heart}
-        <p>We can’t wait to celebrate this special day with the people we love most.</p>
-        <p className="welcome-sign">Allan &amp; Shiphira</p>
-      </div>
-
-      <div className="verse-card">
-        {icons.cross}
-        <p>A cord of three strands<br/>is not quickly broken.</p>
-        <cite>Ecclesiastes 4:12</cite>
-        <span className="verse-seal">A&amp;S</span>
-      </div>
-
-      <ul className="values-list">
-        {values.map(([icon, name, text]) => <li key={name}><span className="values-icon">{icon}</span><div><strong>{name}</strong><span>{text}</span></div></li>)}
-      </ul>
     </section>
 
     <section className="journey section" id="journey">
