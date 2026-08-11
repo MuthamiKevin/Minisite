@@ -3,15 +3,6 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 
-const programme = [
-  ["10:30 AM", "Guest arrival"], ["10:45 AM", "Wedding processional"],
-  ["11:00 AM", "Opening prayer & worship"], ["11:15 AM", "Scripture reading & marriage charge"],
-  ["11:30 AM", "Exchange of vows"], ["12:00 PM", "Signing of the register"],
-  ["12:15 PM", "Refreshments & photography"], ["1:15 PM", "Reception & lunch"],
-  ["2:30 PM", "Speeches & toasts"], ["3:30 PM", "Cake cutting"],
-  ["3:45 PM", "Celebration"], ["6:00 PM", "Thank you & departure"],
-];
-
 const dressCode: [string, string][] = [
   ["#ede1d3", "Champagne"], ["#e3cfb4", "Sand"], ["#cbb49c", "Taupe"], ["#c7bfb4", "Stone"], ["#c08d53", "Camel"], ["#96745f", "Mocha"],
   ["#a7b08f", "Sage"], ["#7c7c4a", "Olive"], ["#b98b72", "Mocha Light"], ["#8b6a4f", "Soft Brown"], ["#e7dac7", "Cream"], ["#f1e9da", "Ivory"],
@@ -69,7 +60,28 @@ const icons = {
   sprig: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 21V9" /><path d="M12 9c0-4 3-6 6-6-1 4-3 6-6 6z" /><path d="M12 13c0-3-2-5-5-5 1 3 2 5 5 5z" /></svg>,
   cross: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M12 3v18M7.5 8h9" /></svg>,
   bud: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M12 21c0-6 0-9 0-12" /><path d="M12 9c-3-1-4-4-3-7 3 0 5 2 5 5 0 1-.7 1.8-2 2z" /><path d="M12 13c2.3-.6 3-2.4 2.6-4.4-2 .2-3.4 1.6-3.4 3.4 0 .5.3 1 .8 1z" /></svg>,
+  pen: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 20l4-1 10-10-3-3L5 16l-1 4z" /><path d="M14 6l3 3" /></svg>,
+  cup: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M6 3h9v9a4.5 4.5 0 0 1-9 0V3z" /><path d="M15 6h2a2.5 2.5 0 0 1 0 5h-2" /><path d="M5 21h11" /></svg>,
+  plate: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg>,
+  toast: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M7 3h10l-1 6a4 4 0 0 1-8 0L7 3z" /><path d="M12 13v7M8 21h8" /></svg>,
+  cake: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="12" width="16" height="9" rx="1" /><path d="M4 16.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2 1.3 1.2 2.7 1.2 1.3-1.2 2.6-1.2 1.3 1.2 2.7 1.2" /><path d="M9 12V8a1 1 0 1 1 2 0M13 12V8a1 1 0 1 0 2 0" /></svg>,
+  music: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M9 18V5l10-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" /></svg>,
 };
+
+const programme: [string, string, keyof typeof icons][] = [
+  ["10:30 AM", "Guest arrival", "pin"],
+  ["10:45 AM", "Wedding processional", "sprig"],
+  ["11:00 AM", "Opening prayer & worship", "dove"],
+  ["11:15 AM", "Scripture reading & marriage charge", "cross"],
+  ["11:30 AM", "Exchange of vows", "heart"],
+  ["12:00 PM", "Signing of the register", "pen"],
+  ["12:15 PM", "Refreshments & photography", "cup"],
+  ["1:15 PM", "Reception & lunch", "plate"],
+  ["2:30 PM", "Speeches & toasts", "toast"],
+  ["3:30 PM", "Cake cutting", "cake"],
+  ["3:45 PM", "Celebration", "music"],
+  ["6:00 PM", "Thank you & departure", "heart"],
+];
 
 function Countdown() {
   const [time, setTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -273,7 +285,12 @@ export default function Home() {
 
     <section className="programme section" id="programme">
       <p className="eyebrow centered">Order of celebration</p><h2>Our programme</h2>
-      <div className="timeline reveal">{programme.map(([time,item]) => <div className="timeline-item" key={time}><time>{time}</time><span className="timeline-icon">{icons.bud}</span><p>{item}</p></div>)}</div>
+      <div className="timeline">
+        {programme.map(([time, item, icon], i) => <div className={`timeline-item reveal ${i % 2 === 0 ? "left" : "right"}`} key={time}>
+          <div className="timeline-marker">{icons[icon]}</div>
+          <div className="timeline-card"><time>{time}</time><p>{item}</p></div>
+        </div>)}
+      </div>
     </section>
 
     <section className="sharing" id="gifts">
