@@ -18,18 +18,6 @@ const milestones: [string | null, ReactNode][] = [
   ["17 Oct 2026", "Before God, family and friends… we become one."],
 ];
 
-type Guest = {
-  code: string;
-  familyName: string;
-  allowedAdults: number;
-  allowedChildren: number;
-  rsvpStatus: "pending" | "attending" | "declined";
-  rsvpAdults: number | null;
-  rsvpChildren: number | null;
-  rsvpEmail: string | null;
-  rsvpPhone: string | null;
-};
-
 function Leaf({ className }: { className?: string }) {
   return <svg className={`leaf ${className ?? ""}`} viewBox="0 0 120 60" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden="true">
     <path d="M4 30 C 30 10, 90 10, 116 30" />
@@ -66,6 +54,12 @@ const icons = {
   toast: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M7 3h10l-1 6a4 4 0 0 1-8 0L7 3z" /><path d="M12 13v7M8 21h8" /></svg>,
   cake: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="4" y="12" width="16" height="9" rx="1" /><path d="M4 16.5c1.3 0 1.3-1.2 2.7-1.2s1.3 1.2 2.6 1.2 1.3-1.2 2.7-1.2 1.3 1.2 2.7 1.2 1.3-1.2 2.6-1.2 1.3 1.2 2.7 1.2" /><path d="M9 12V8a1 1 0 1 1 2 0M13 12V8a1 1 0 1 0 2 0" /></svg>,
   music: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M9 18V5l10-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="16" cy="16" r="3" /></svg>,
+  sparkle: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" /></svg>,
+  play: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>,
+  pause: <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>,
+  speaker: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M4 9v6h4l5 5V4L8 9H4z" /><path d="M16.5 9c1.5 1.5 1.5 5.5 0 7M19 6.5c3 3 3 8.5 0 11.5" /></svg>,
+  check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M5 12l5 5L19 7" /></svg>,
+  alertCircle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></svg>,
 };
 
 const programme: [string, string, keyof typeof icons][] = [
@@ -102,18 +96,11 @@ function Countdown() {
   </div>;
 }
 
-function LockedLanding() {
-  return <main className="locked">
-    <div className="locked-monogram">A <i>&amp;</i> S</div>
-    <p className="locked-message">Please use the personal invitation link sent to you.</p>
-  </main>;
-}
-
 export default function Home() {
-  const [guestState, setGuestState] = useState<"loading" | "locked" | Guest>("loading");
   const [menuOpen, setMenuOpen] = useState(false);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [status, setStatus] = useState<"idle"|"sending"|"done"|"error">("idle");
+  const [attendance, setAttendance] = useState<"attending"|"declined"|"">("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateClosing, setGateClosing] = useState(false);
@@ -122,21 +109,10 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [guestStatus, setGuestStatus] = useState<"idle"|"sending"|"done"|"error">("idle");
 
-  useEffect(() => {
-    const match = window.location.pathname.match(/^\/invite\/([A-Za-z0-9]+)\/?$/);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only readable client-side after a statically-exported page hydrates, so this can't be computed during render.
-    if (!match) { setGuestState("locked"); return; }
-    const code = match[1].toUpperCase();
-    fetch(`/api/guest?code=${encodeURIComponent(code)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setGuestState({ code, ...data }))
-      .catch(() => setGuestState("locked"));
-  }, []);
-
   function openGate() {
     setGateClosing(true);
     document.body.style.overflow = "";
-    setTimeout(() => setGateOpen(true), 650);
+    setTimeout(() => setGateOpen(true), 950);
   }
 
   function toggleMusic() {
@@ -161,7 +137,7 @@ export default function Home() {
     const onScroll = () => setShowTop(window.scrollY > 600);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { io.disconnect(); window.removeEventListener("scroll", onScroll); };
-  }, [guestState]);
+  }, []);
 
   async function submitRsvp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setStatus("sending");
@@ -169,8 +145,9 @@ export default function Home() {
     try {
       const response = await fetch("/api/rsvp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
       if (!response.ok) throw new Error("RSVP request failed");
-      if (data.attendance === "attending") {
-        const inviteUrl = `${window.location.origin}/invite/${data.code}`;
+      const result = await response.json();
+      if (data.attendance === "attending" && result.code) {
+        const inviteUrl = `${window.location.origin}/invite/${result.code}`;
         setQrDataUrl(await QRCode.toDataURL(inviteUrl, { width: 320, margin: 2 }));
       } else {
         setQrDataUrl(null);
@@ -194,23 +171,35 @@ export default function Home() {
     }
   }
 
-  if (guestState === "loading") return <main className="loading-shell" aria-hidden="true" />;
-  if (guestState === "locked") return <LockedLanding />;
-
-  const guest = guestState;
-
   return <main>
     {/* eslint-disable-next-line jsx-a11y/media-has-caption -- decorative instrumental background track, no speech content */}
     <audio ref={audioRef} src="/music.mp3" loop preload="none" />
     <button id="music-toggle" className={musicOn ? "playing" : ""} onClick={toggleMusic} aria-label={musicOn ? "Pause background music" : "Play background music"} aria-pressed={musicOn}>
-      <span className="music-bar" /><span className="music-bar" /><span className="music-bar" />
+      <span className="music-play-icon">{musicOn ? icons.pause : icons.play}</span>
+      <span className="music-track">Wedding Song</span>
+      <span className="music-divider" />
+      {icons.speaker}
     </button>
 
-    {!gateOpen && <div className={`gate ${gateClosing ? "closing" : ""}`} role="presentation">
-      <p className="gate-monogram">A <i>&amp;</i> S</p>
-      <button className="gate-seal" onClick={openGate} aria-label="Open our wedding invitation"><span>A<i>&amp;</i>S</span></button>
-      <span className="gate-tap">Tap the seal to open</span>
-      <p className="gate-line">Dear {guest.familyName}, together with joyful hearts, we invite you in.</p>
+    {!gateOpen && <div className={`gate-backdrop ${gateClosing ? "closing" : ""}`} role="presentation">
+      <div className="gate-card">
+        <div className="gate-flap gate-flap-top" />
+        <div className="gate-flap gate-flap-bottom" />
+        <div className="gate-content">
+          <div className="gate-top">
+            <p className="gate-eyebrow">Wedding Invitation</p>
+            <p className="gate-names">Allan &amp; Shiphira</p>
+          </div>
+          <div className="gate-middle">
+            <button className="gate-seal" onClick={openGate} aria-label="Open our wedding invitation"><span>A<i>&amp;</i>S</span></button>
+            <button className="gate-tap" onClick={openGate}>{icons.sprig}Tap seal to open</button>
+          </div>
+          <div className="gate-bottom">
+            <p className="gate-line">Together with joyful hearts</p>
+            <span className="gate-hashtag">#AllanWedsShiphira</span>
+          </div>
+        </div>
+      </div>
     </div>}
 
     <header className="nav-wrap">
@@ -229,7 +218,7 @@ export default function Home() {
       <Leaf className="hero-leaf hero-leaf-right" />
       <div className="hero-content">
         <p className="eyebrow">Together with joyful hearts</p>
-        <p className="hero-greeting">Dear {guest.familyName}, we invite you to celebrate with us.</p>
+        <p className="eyebrow hero-invite">we invite you to celebrate our wedding</p>
         <h1><span>Allan</span><i>&amp;</i><span>Shiphira</span></h1>
         <p className="hero-line">Our Journey. His Grace. Our Forever.</p>
         <div className="hero-meta">
@@ -238,9 +227,8 @@ export default function Home() {
           <span className="hero-time">Guest arrival 10:30 AM &nbsp;|&nbsp; Ceremony begins 11:00 AM</span>
         </div>
         <blockquote className="hero-verse">“We love because He first loved us.” <cite>1 John 4:19</cite></blockquote>
-        <button className="primary" onClick={() => setRsvpOpen(true)}>Kindly RSVP</button>
+        <button className="primary" onClick={() => setRsvpOpen(true)}>{icons.sparkle}Kindly RSVP</button>
         <p className="rsvp-deadline">Kindly respond by 20 September 2026</p>
-        <p className="invite-note">This invitation is personal and non-transferable. Kindly do not forward.</p>
       </div>
       <a className="scroll" href="#journey" aria-label="Scroll to our journey">↓</a>
     </section>
@@ -265,7 +253,7 @@ export default function Home() {
     <section className="details section" id="details">
       <p className="eyebrow centered">Wedding details</p><h2>Saturday, 17 October 2026</h2>
       <div className="detail-grid reveal">
-        <article><span>01</span><h3>Ceremony</h3><p>Guest arrival from 10:30 AM<br/>Ceremony begins at 11:00 AM<br/>Celebration continues to 6:00 PM</p></article>
+        <article className="ceremony-card"><span>01</span><h3>Ceremony</h3><p>Guest arrival from 10:30 AM<br/>Ceremony begins at 11:00 AM<br/>Celebration continues to 6:00 PM</p></article>
         <article className="venue-card"><span>02</span><h3>Venue</h3><p>Naipei Gardens<br/>Limuru, Kenya</p><a className="secondary" href="https://www.google.com/maps/search/?api=1&query=Naipei+Gardens+Limuru" target="_blank" rel="noreferrer">View map ↗</a></article>
       </div>
     </section>
@@ -299,11 +287,10 @@ export default function Home() {
         <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div><strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p>
         <div className="gift-details">
-          <div className="gift-row"><span>M-PESA Till Number</span><strong>Add till number</strong></div>
-          <div className="gift-row"><span>Bank Account</span><strong>Add bank details</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Shiphira</span><strong>0707 740 754</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Allan</span><strong>0723 127 962</strong></div>
         </div>
-        <div className="placeholder-qr">QR</div>
-        <small>Gift details will be shared with invited guests.</small></article>
+        <small>Kindly indicate your name when sending, so we may thank you personally.</small></article>
     </section>
 
     <section className="families reveal" id="families">
@@ -337,6 +324,8 @@ export default function Home() {
       <QuickLink icon={icons.envelope} label="RSVP" onClick={() => setRsvpOpen(true)} />
     </nav>
 
+    <div className="deadline-band"><p><strong>RSVP Deadline: 20th September 2026</strong> — kindly respond by this date so we can finalize plans.</p></div>
+
     <footer>
       <div className="footer-monogram">A <i>&amp;</i> S</div>
       <p className="footer-values">Faith · Hope · Love · Grace · Joy · Peace</p>
@@ -355,15 +344,18 @@ export default function Home() {
             <p className="qr-note">This is your entry QR code — take a screenshot now and show it at the entrance on the day.</p>
           </div>}
           <button className="primary" onClick={() => setRsvpOpen(false)}>Close</button></div> : <>
-          <p className="eyebrow">Kindly respond by 20 September 2026</p><h2 id="rsvp-title">Will you join us, {guest.familyName}?</h2>
+          <p className="eyebrow">Kindly respond by 20 September 2026</p><h2 id="rsvp-title">Will you join us?</h2>
           <form onSubmit={submitRsvp}>
-            <input type="hidden" name="code" value={guest.code} />
-            <label>Email<input name="email" type="email" required defaultValue={guest.rsvpEmail ?? ""} /></label>
-            <label>Phone (optional)<input name="phone" type="tel" defaultValue={guest.rsvpPhone ?? ""} /></label>
-            <fieldset><legend>Attendance</legend><label><input type="radio" name="attendance" value="attending" required defaultChecked={guest.rsvpStatus === "attending"}/> Joyfully accepts</label><label><input type="radio" name="attendance" value="declined" defaultChecked={guest.rsvpStatus === "declined"}/> Regretfully declines</label></fieldset>
-            <label>Adults (max {guest.allowedAdults})<input name="adults" type="number" min="1" max={guest.allowedAdults} defaultValue={guest.rsvpAdults ?? 1}/></label>
-            {guest.allowedChildren > 0 && <label>Children under 14 (max {guest.allowedChildren})<input name="children" type="number" min="0" max={guest.allowedChildren} defaultValue={guest.rsvpChildren ?? 0}/></label>}
-            <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : "Send RSVP"}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
+            <label>Full name<input name="name" required /></label>
+            <label>Email<input name="email" type="email" required /></label>
+            <label>Phone (optional)<input name="phone" type="tel" /></label>
+            <fieldset className="attendance-choice"><legend>Will you attend?</legend>
+              <label className={`choice-yes ${attendance === "attending" ? "checked" : ""}`}><input type="radio" name="attendance" value="attending" required checked={attendance === "attending"} onChange={() => setAttendance("attending")}/>{icons.check}Yes, with pleasure!</label>
+              <label className={`choice-no ${attendance === "declined" ? "checked" : ""}`}><input type="radio" name="attendance" value="declined" checked={attendance === "declined"} onChange={() => setAttendance("declined")}/>{icons.alertCircle}Regretfully decline</label>
+            </fieldset>
+            <label>Adults (max 4)<input name="adults" type="number" min="1" max="4" defaultValue="1"/></label>
+            <label>Children, ages 0–12 (max 3)<input name="children" type="number" min="0" max="3" defaultValue="0"/></label>
+            <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>{icons.sparkle}Confirm Attendance</>}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
         </>}
       </div>
     </div>}
