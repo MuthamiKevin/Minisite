@@ -176,8 +176,6 @@ export default function Home() {
     <audio ref={audioRef} src="/music.mp3" loop preload="none" />
     <button id="music-toggle" className={musicOn ? "playing" : ""} onClick={toggleMusic} aria-label={musicOn ? "Pause background music" : "Play background music"} aria-pressed={musicOn}>
       <span className="music-play-icon">{musicOn ? icons.pause : icons.play}</span>
-      <span className="music-track">Wedding Song</span>
-      <span className="music-divider" />
       {icons.speaker}
     </button>
 
@@ -188,7 +186,7 @@ export default function Home() {
         <div className="gate-content">
           <div className="gate-top">
             <p className="gate-eyebrow">Wedding Invitation</p>
-            <p className="gate-names">Allan &amp; Shiphira</p>
+            <p className="gate-names">Allan <i>&amp;</i> Shiphira</p>
           </div>
           <div className="gate-middle">
             <button className="gate-seal" onClick={openGate} aria-label="Open our wedding invitation"><span>A<i>&amp;</i>S</span></button>
@@ -287,10 +285,10 @@ export default function Home() {
         <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div><strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p>
         <div className="gift-details">
-          <div className="gift-row"><span>M-PESA &mdash; Shiphira</span><strong>0707 740 754</strong></div>
-          <div className="gift-row"><span>M-PESA &mdash; Allan</span><strong>0723 127 962</strong></div>
+          <div className="gift-row"><span>M-PESA Paybill</span><strong>880100</strong></div>
+          <div className="gift-row"><span>Account Number</span><strong>5766050018</strong></div>
         </div>
-        <small>Kindly indicate your name when sending, so we may thank you personally.</small></article>
+      </article>
     </section>
 
     <section className="families reveal" id="families">
