@@ -25,6 +25,17 @@ async function syncToGoogleSheet(row: SheetRow) {
   const getRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A:A`, { headers });
   if (!getRes.ok) throw new Error(`Google Sheets read failed: ${getRes.status} ${await getRes.text()}`);
   const { values }: { values?: string[][] } = await getRes.json();
+
+  // A brand-new sheet has no header row, which leaves the columns unlabelled for whoever
+  // reads it. Write them once, on the first sync only.
+  if (!values || values.length === 0) {
+    const headerValues = [["Code", "Name", "Allowed Adults", "Allowed Children", "Status", "Adults", "Children", "Email", "Phone", "RSVP At"]];
+    const headerRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A1:J1?valueInputOption=USER_ENTERED`, {
+      method: "PUT", headers, body: JSON.stringify({ values: headerValues }),
+    });
+    if (!headerRes.ok) throw new Error(`Google Sheets header write failed: ${headerRes.status} ${await headerRes.text()}`);
+  }
+
   const rowIndex = (values ?? []).findIndex((r) => r[0] === row.code);
 
   const rowValues = [[row.code, row.familyName, row.allowedAdults, row.allowedChildren, row.status, row.adults, row.children, row.email, row.phone, row.rsvpAt]];

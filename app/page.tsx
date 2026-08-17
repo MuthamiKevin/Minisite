@@ -127,6 +127,22 @@ export default function Home() {
   }, [gateOpen]);
 
   useEffect(() => {
+    const saved = localStorage.getItem("rsvp_response");
+    if (!saved) return;
+    try {
+      const { attendance: savedAttendance, code } = JSON.parse(saved) as { attendance: "attending" | "declined"; code: string | null };
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time rehydration of a prior RSVP from localStorage, client-only
+      setAttendance(savedAttendance);
+      setStatus("done");
+      if (savedAttendance === "attending" && code) {
+        QRCode.toDataURL(`${window.location.origin}/invite/${code}`, { width: 320, margin: 2 }).then(setQrDataUrl).catch(() => {});
+      }
+    } catch {
+      localStorage.removeItem("rsvp_response");
+    }
+  }, []);
+
+  useEffect(() => {
     const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) { entry.target.classList.add("is-visible"); io.unobserve(entry.target); }
@@ -152,6 +168,7 @@ export default function Home() {
       } else {
         setQrDataUrl(null);
       }
+      localStorage.setItem("rsvp_response", JSON.stringify({ attendance: data.attendance, code: result.code ?? null }));
       setStatus("done");
     } catch {
       setStatus("error");
@@ -336,7 +353,8 @@ export default function Home() {
 
     {rsvpOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && setRsvpOpen(false)}>
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="rsvp-title"><button className="close" onClick={() => setRsvpOpen(false)} aria-label="Close RSVP form">×</button>
-        {status === "done" ? <div className="success"><p className="eyebrow">Thank you</p><h2>Your RSVP is received.</h2><p>We can’t wait to celebrate with you.</p>
+        {status === "done" ? <div className="success"><p className="eyebrow">Thank you</p><h2>Your RSVP is received.</h2>
+          <p>{attendance === "declined" ? "We're sorry you won't be able to join us, but thank you so much for letting us know." : "We can’t wait to celebrate with you."}</p>
           {qrDataUrl && <div className="qr-result">
             <img src={qrDataUrl} alt="Your personal check-in QR code" width={200} height={200} />
             <p className="qr-note">This is your entry QR code — take a screenshot now and show it at the entrance on the day.</p>
@@ -351,8 +369,8 @@ export default function Home() {
               <label className={`choice-yes ${attendance === "attending" ? "checked" : ""}`}><input type="radio" name="attendance" value="attending" required checked={attendance === "attending"} onChange={() => setAttendance("attending")}/>{icons.check}Yes, with pleasure!</label>
               <label className={`choice-no ${attendance === "declined" ? "checked" : ""}`}><input type="radio" name="attendance" value="declined" checked={attendance === "declined"} onChange={() => setAttendance("declined")}/>{icons.alertCircle}Regretfully decline</label>
             </fieldset>
-            <label>Adults (max 4)<input name="adults" type="number" min="1" max="4" defaultValue="1"/></label>
-            <label>Children, ages 0–12 (max 3)<input name="children" type="number" min="0" max="3" defaultValue="0"/></label>
+            <label>Adults<input name="adults" type="number" min="1" max="4" defaultValue="1"/></label>
+            <label>Children (ages 0–12)<input name="children" type="number" min="0" max="3" defaultValue="0"/></label>
             <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>{icons.sparkle}Confirm Attendance</>}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
         </>}
       </div>
