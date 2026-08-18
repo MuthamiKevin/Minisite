@@ -22,7 +22,22 @@ async function syncToGoogleSheet(row: SheetRow) {
   const { token } = await auth.getAccessToken();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  const getRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A:A`, { headers });
+  const readCodes = () =>
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A:A`, { headers });
+
+  let getRes = await readCodes();
+
+  // A 400 here means the tab doesn't exist — a fresh spreadsheet still has only its
+  // default "Sheet1". Create the tab and retry rather than dropping the response.
+  if (getRes.status === 400) {
+    const addRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
+      method: "POST", headers,
+      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: tab } } }] }),
+    });
+    if (!addRes.ok) throw new Error(`Google Sheets tab creation failed: ${addRes.status} ${await addRes.text()}`);
+    getRes = await readCodes();
+  }
+
   if (!getRes.ok) throw new Error(`Google Sheets read failed: ${getRes.status} ${await getRes.text()}`);
   const { values }: { values?: string[][] } = await getRes.json();
 
