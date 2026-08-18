@@ -1,72 +1,28 @@
-import type { Config } from "@netlify/functions";
-import { createClient } from "@supabase/supabase-js";
-import { JWT } from "google-auth-library";
+import type { Config } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
+import { getSheetsContext, readColumnA, writeHeaderIfEmpty, appendRow, updateRow } from '../lib/sheets';
 
 type SheetRow = {
   code: string; familyName: string; allowedAdults: number; allowedChildren: number;
   status: string; adults: number; children: number; email: string; phone: string; rsvpAt: string;
 };
 
+const GUESTS_HEADER = ['Code', 'Name', 'Allowed Adults', 'Allowed Children', 'Status', 'Adults', 'Children', 'Email', 'Phone', 'RSVP At'];
+
 async function syncToGoogleSheet(row: SheetRow) {
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  if (!sheetId || !serviceAccountEmail || !privateKey) return; // Google Sheets sync not configured yet.
+  const ctx = await getSheetsContext();
+  if (!ctx) return; // Google Sheets sync not configured yet.
 
-  const tab = process.env.GOOGLE_SHEET_TAB ?? "Guests";
-  const auth = new JWT({
-    email: serviceAccountEmail,
-    key: privateKey.replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
-  const { token } = await auth.getAccessToken();
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const tab = process.env.GOOGLE_SHEET_TAB ?? 'Guests';
+  const existing = await readColumnA(ctx, tab);
+  await writeHeaderIfEmpty(ctx, tab, existing, GUESTS_HEADER);
 
-  const readCodes = () =>
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A:A`, { headers });
+  const values = [row.code, row.familyName, row.allowedAdults, row.allowedChildren, row.status, row.adults, row.children, row.email, row.phone, row.rsvpAt];
+  const rowIndex = existing.findIndex((r) => r[0] === row.code);
 
-  let getRes = await readCodes();
-
-  // A 400 here means the tab doesn't exist — a fresh spreadsheet still has only its
-  // default "Sheet1". Create the tab and retry rather than dropping the response.
-  if (getRes.status === 400) {
-    const addRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`, {
-      method: "POST", headers,
-      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: tab } } }] }),
-    });
-    if (!addRes.ok) throw new Error(`Google Sheets tab creation failed: ${addRes.status} ${await addRes.text()}`);
-    getRes = await readCodes();
-  }
-
-  if (!getRes.ok) throw new Error(`Google Sheets read failed: ${getRes.status} ${await getRes.text()}`);
-  const { values }: { values?: string[][] } = await getRes.json();
-
-  // A brand-new sheet has no header row, which leaves the columns unlabelled for whoever
-  // reads it. Write them once, on the first sync only.
-  if (!values || values.length === 0) {
-    const headerValues = [["Code", "Name", "Allowed Adults", "Allowed Children", "Status", "Adults", "Children", "Email", "Phone", "RSVP At"]];
-    const headerRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A1:J1?valueInputOption=USER_ENTERED`, {
-      method: "PUT", headers, body: JSON.stringify({ values: headerValues }),
-    });
-    if (!headerRes.ok) throw new Error(`Google Sheets header write failed: ${headerRes.status} ${await headerRes.text()}`);
-  }
-
-  const rowIndex = (values ?? []).findIndex((r) => r[0] === row.code);
-
-  const rowValues = [[row.code, row.familyName, row.allowedAdults, row.allowedChildren, row.status, row.adults, row.children, row.email, row.phone, row.rsvpAt]];
-
-  if (rowIndex >= 0) {
-    const rowNumber = rowIndex + 1;
-    const putRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A${rowNumber}:J${rowNumber}?valueInputOption=USER_ENTERED`, {
-      method: "PUT", headers, body: JSON.stringify({ values: rowValues }),
-    });
-    if (!putRes.ok) throw new Error(`Google Sheets update failed: ${putRes.status} ${await putRes.text()}`);
-  } else {
-    const appendRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tab)}!A:J:append?valueInputOption=USER_ENTERED`, {
-      method: "POST", headers, body: JSON.stringify({ values: rowValues }),
-    });
-    if (!appendRes.ok) throw new Error(`Google Sheets append failed: ${appendRes.status} ${await appendRes.text()}`);
-  }
+  // A known code updates its own row so re-submissions don't pile up duplicates.
+  if (rowIndex >= 0) await updateRow(ctx, tab, rowIndex + 1, values);
+  else await appendRow(ctx, tab, values);
 }
 
 const PUBLIC_MAX_ADULTS = 4;

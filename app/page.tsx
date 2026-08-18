@@ -188,12 +188,16 @@ export default function Home() {
 
   async function submitGuestMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setGuestStatus("sending");
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    // Hold onto the form: React clears event.currentTarget once the handler
+    // yields at the first await, so reading it afterwards throws and made a
+    // successful save look like a failure.
+    const form = event.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     try {
       const response = await fetch("/api/guestbook", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
       if (!response.ok) throw new Error("Guestbook request failed");
+      form.reset();
       setGuestStatus("done");
-      event.currentTarget.reset();
     } catch {
       setGuestStatus("error");
     }
@@ -309,14 +313,19 @@ export default function Home() {
 
     <section className="sharing" id="gifts">
       <article className="reveal"><p className="eyebrow">Photo sharing</p><h2>See our day through your eyes.</h2><p>Every smile, every laugh and every little moment matters to us. We’d love to relive our wedding through your photos and videos.</p>
-        <a className="upload-button" href={GOOGLE_PHOTOS_ALBUM_URL} target="_blank" rel="noreferrer">{icons.upload}Add your photos</a>
-        <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div><strong>#AllanWedsShiphira</strong></article>
+        {GOOGLE_PHOTOS_ALBUM_URL.includes("REPLACE_WITH")
+          ? <><span className="upload-button is-pending" aria-disabled="true">{icons.upload}Add your photos</span>
+              <p className="scan-note">The album opens closer to the day — we&rsquo;ll share the link and a QR code here.</p></>
+          : <><a className="upload-button" href={GOOGLE_PHOTOS_ALBUM_URL} target="_blank" rel="noreferrer">{icons.upload}Add your photos</a>
+              <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div></>}
+        <strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p>
         <div className="gift-details">
-          <div className="gift-row"><span>M-PESA Paybill</span><strong>880100</strong></div>
+          <div className="gift-row"><span>Paybill</span><strong>880100</strong></div>
           <div className="gift-row"><span>Account Number</span><strong>5766050018</strong></div>
-          <div className="gift-row"><span>M-PESA &mdash; Shiphira</span><strong>0707 740 754</strong></div>
-          <div className="gift-row"><span>M-PESA &mdash; Allan</span><strong>0723 127 962</strong></div>
+          <p className="gift-or"><span>or</span></p>
+          <div className="gift-row"><span>Shiphira</span><strong>0707 740 754</strong></div>
+          <div className="gift-row"><span>Allan</span><strong>0723 127 962</strong></div>
         </div>
       </article>
     </section>
@@ -382,8 +391,10 @@ export default function Home() {
               <label className={`choice-yes ${attendance === "attending" ? "checked" : ""}`}><input type="radio" name="attendance" value="attending" required checked={attendance === "attending"} onChange={() => setAttendance("attending")}/>{icons.check}Yes, with pleasure!</label>
               <label className={`choice-no ${attendance === "declined" ? "checked" : ""}`}><input type="radio" name="attendance" value="declined" checked={attendance === "declined"} onChange={() => setAttendance("declined")}/>{icons.alertCircle}Regretfully decline</label>
             </fieldset>
-            <label>Adults<input name="adults" type="number" inputMode="numeric" min="1" max="4" value={adults} onChange={(e) => setAdults(clampCount(e.target.value, 1, 4))}/></label>
-            <label>Children (ages 0–12)<input name="children" type="number" inputMode="numeric" min="0" max="3" value={children} onChange={(e) => setChildren(clampCount(e.target.value, 0, 3))}/></label>
+            {attendance !== "declined" && <>
+              <label>Adults<input name="adults" type="number" inputMode="numeric" min="1" max="4" value={adults} onChange={(e) => setAdults(clampCount(e.target.value, 1, 4))}/></label>
+              <label>Children (ages 0–12)<input name="children" type="number" inputMode="numeric" min="0" max="3" value={children} onChange={(e) => setChildren(clampCount(e.target.value, 0, 3))}/></label>
+            </>}
             <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>{icons.sparkle}Confirm Attendance</>}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
         </>}
       </div>
