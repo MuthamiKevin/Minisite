@@ -321,11 +321,11 @@ export default function Home() {
         <strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p>
         <div className="gift-details">
-          <div className="gift-row"><span>Paybill</span><strong>880100</strong></div>
+          <div className="gift-row"><span>M-PESA Paybill</span><strong>880100</strong></div>
           <div className="gift-row"><span>Account Number</span><strong>5766050018</strong></div>
           <p className="gift-or"><span>or</span></p>
-          <div className="gift-row"><span>Shiphira</span><strong>0707 740 754</strong></div>
-          <div className="gift-row"><span>Allan</span><strong>0723 127 962</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Shiphira</span><strong>0707 740 754</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Allan</span><strong>0723 127 962</strong></div>
         </div>
       </article>
     </section>
