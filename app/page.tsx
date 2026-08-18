@@ -96,11 +96,22 @@ function Countdown() {
   </div>;
 }
 
+/* A number input's `max` only blocks submission — the browser still happily lets
+   someone type 9 into a field capped at 3. Clamp on every keystroke instead.
+   An empty string is allowed through so the field can be cleared and retyped. */
+function clampCount(raw: string, min: number, max: number): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits === "") return "";
+  return String(Math.min(max, Math.max(min, Number(digits))));
+}
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [status, setStatus] = useState<"idle"|"sending"|"done"|"error">("idle");
   const [attendance, setAttendance] = useState<"attending"|"declined"|"">("");
+  const [adults, setAdults] = useState("1");
+  const [children, setChildren] = useState("0");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateClosing, setGateClosing] = useState(false);
@@ -369,8 +380,8 @@ export default function Home() {
               <label className={`choice-yes ${attendance === "attending" ? "checked" : ""}`}><input type="radio" name="attendance" value="attending" required checked={attendance === "attending"} onChange={() => setAttendance("attending")}/>{icons.check}Yes, with pleasure!</label>
               <label className={`choice-no ${attendance === "declined" ? "checked" : ""}`}><input type="radio" name="attendance" value="declined" checked={attendance === "declined"} onChange={() => setAttendance("declined")}/>{icons.alertCircle}Regretfully decline</label>
             </fieldset>
-            <label>Adults<input name="adults" type="number" min="1" max="4" defaultValue="1"/></label>
-            <label>Children (ages 0–12)<input name="children" type="number" min="0" max="3" defaultValue="0"/></label>
+            <label>Adults<input name="adults" type="number" inputMode="numeric" min="1" max="4" value={adults} onChange={(e) => setAdults(clampCount(e.target.value, 1, 4))}/></label>
+            <label>Children (ages 0–12)<input name="children" type="number" inputMode="numeric" min="0" max="3" value={children} onChange={(e) => setChildren(clampCount(e.target.value, 0, 3))}/></label>
             <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>{icons.sparkle}Confirm Attendance</>}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
         </>}
       </div>
