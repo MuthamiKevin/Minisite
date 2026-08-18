@@ -315,6 +315,8 @@ export default function Home() {
         <div className="gift-details">
           <div className="gift-row"><span>M-PESA Paybill</span><strong>880100</strong></div>
           <div className="gift-row"><span>Account Number</span><strong>5766050018</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Shiphira</span><strong>0707 740 754</strong></div>
+          <div className="gift-row"><span>M-PESA &mdash; Allan</span><strong>0723 127 962</strong></div>
         </div>
       </article>
     </section>
