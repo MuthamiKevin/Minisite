@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     description: "Our Journey. His Grace. Our Forever.",
     // share.jpg is venue.jpg recropped to 1200x630 — the size WhatsApp and Facebook
     // need before they'll render a large banner instead of a small thumbnail.
-    images: [{ url: "/share.jpg", width: 1200, height: 630, alt: "Naipei Gardens, Limuru" }],
+    images: [{ url: "/share.jpg", width: 1200, height: 630, type: "image/jpeg", alt: "Naipei Gardens, Limuru" }],
   },
   twitter: {
     card: "summary_large_image",
