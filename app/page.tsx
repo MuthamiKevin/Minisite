@@ -258,7 +258,7 @@ export default function Home() {
         </div>
         <blockquote className="hero-verse">“We love because He first loved us.” <cite>1 John 4:19</cite></blockquote>
         <button className="primary" onClick={() => setRsvpOpen(true)}>{icons.sparkle}Kindly RSVP</button>
-        <p className="rsvp-deadline">Kindly respond by 20 September 2026</p>
+        <p className="rsvp-deadline">Kindly respond by 23 September 2026</p>
       </div>
       <a className="scroll" href="#journey" aria-label="Scroll to our journey">↓</a>
     </section>
@@ -361,7 +361,7 @@ export default function Home() {
       <QuickLink icon={icons.envelope} label="RSVP" onClick={() => setRsvpOpen(true)} />
     </nav>
 
-    <div className="deadline-band"><p><strong>RSVP Deadline: 20th September 2026</strong> — kindly respond by this date so we can finalize plans.</p></div>
+    <div className="deadline-band"><p><strong>RSVP Deadline: 23rd September 2026</strong> — kindly respond by this date so we can finalize plans.</p></div>
 
     <footer>
       <div className="footer-monogram">A <i>&amp;</i> S</div>
@@ -382,7 +382,7 @@ export default function Home() {
             <p className="qr-note">This is your entry QR code — take a screenshot now and show it at the entrance on the day.</p>
           </div>}
           <button className="primary" onClick={() => setRsvpOpen(false)}>Close</button></div> : <>
-          <p className="eyebrow">Kindly respond by 20 September 2026</p><h2 id="rsvp-title">Will you join us?</h2>
+          <p className="eyebrow">Kindly respond by 23 September 2026</p><h2 id="rsvp-title">Will you join us?</h2>
           <form onSubmit={submitRsvp}>
             <label>Full name<input name="name" required /></label>
             <label>Email<input name="email" type="email" required /></label>
