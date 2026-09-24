@@ -2,13 +2,15 @@
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { albumQr as createAlbumQr } from "../lib/album-qr";
+import { PHOTO_ALBUM_URL } from "../lib/photo-album";
 
 const dressCode: [string, string][] = [
   ["#ede1d3", "Champagne"], ["#e3cfb4", "Sand"], ["#cbb49c", "Taupe"], ["#c7bfb4", "Stone"], ["#c08d53", "Camel"], ["#96745f", "Mocha"],
   ["#a7b08f", "Sage"], ["#7c7c4a", "Olive"], ["#b98b72", "Mocha Light"], ["#8b6a4f", "Soft Brown"], ["#e7dac7", "Cream"], ["#f1e9da", "Ivory"],
 ];
 
-const GOOGLE_PHOTOS_ALBUM_URL = "https://photos.app.goo.gl/REPLACE_WITH_YOUR_ALBUM_LINK";
+const GOOGLE_PHOTOS_ALBUM_URL = PHOTO_ALBUM_URL;
 
 const milestones: [string | null, ReactNode][] = [
   ["December 2016", "Our first date."],
@@ -112,6 +114,7 @@ export default function Home() {
   const [attendance, setAttendance] = useState<"attending"|"declined"|"">("");
   const [adults, setAdults] = useState("1");
   const [children, setChildren] = useState("0");
+  const [albumQr, setAlbumQr] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [gateClosing, setGateClosing] = useState(false);
@@ -136,6 +139,14 @@ export default function Home() {
   useEffect(() => {
     document.body.style.overflow = gateOpen ? "" : "hidden";
   }, [gateOpen]);
+
+  // Guests scan this from the table cards, or off someone else's screen.
+  useEffect(() => {
+    if (GOOGLE_PHOTOS_ALBUM_URL.includes("REPLACE_WITH")) return;
+    createAlbumQr(GOOGLE_PHOTOS_ALBUM_URL)
+      .then(setAlbumQr)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("rsvp_response");
@@ -317,7 +328,9 @@ export default function Home() {
           ? <><span className="upload-button is-pending" aria-disabled="true">{icons.upload}Add your photos</span>
               <p className="scan-note">The album opens closer to the day — we&rsquo;ll share the link and a QR code here.</p></>
           : <><a className="upload-button" href={GOOGLE_PHOTOS_ALBUM_URL} target="_blank" rel="noreferrer">{icons.upload}Add your photos</a>
-              <p className="scan-note">Or simply scan the QR code below to open the album.</p><div className="placeholder-qr">QR</div></>}
+              <p className="scan-note">Or scan this code to open the album.</p>
+              {albumQr && <img className="album-qr" src={albumQr} alt="Scan to open our shared album" width={150} height={150} />}
+              <p className="scan-hint">You&rsquo;ll be asked to sign in with Google so your photos are credited to you.</p></>}
         <strong>#AllanWedsShiphira</strong></article>
       <article className="gift-card reveal"><p className="eyebrow">With grateful hearts</p><h2>Celebrating with us is the greatest gift.</h2><p>Having you with us on our wedding day is truly the greatest blessing. Should you wish to bless us as we begin this new chapter together, a monetary gift would be deeply appreciated.</p>
         <div className="gift-details">
@@ -401,3 +414,5 @@ export default function Home() {
     </div>}
   </main>;
 }
+
+
