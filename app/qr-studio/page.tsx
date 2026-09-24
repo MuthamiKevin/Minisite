@@ -7,6 +7,7 @@ import "./studio.css";
 export default function Studio() {
   const [link, setLink] = useState(PHOTO_ALBUM_URL);
   const [qr, setQr] = useState("");
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [photos, setPhotos] = useState<[string, string]>(["", ""]);
   useEffect(() => {
@@ -26,23 +27,52 @@ export default function Studio() {
     reader.onload = () => setPhotos(previous => { const next: [string,string] = [...previous]; next[index] = String(reader.result); return next; });
     reader.readAsDataURL(file);
   }
-  function downloadCards() {
-    const sheet = document.querySelector(".studio-sheet");
-    if (!sheet || !qr) return;
-    // Embed the card markup and local styles; QR codes and portraits are data URLs.
-    const styles = Array.from(document.styleSheets).flatMap(style => {
-      try { return Array.from(style.cssRules).filter(rule => rule.type !== CSSRule.IMPORT_RULE).map(rule => rule.cssText); }
-      catch { return []; } // External font sheets are optional; Georgia is the offline fallback.
-    }).join("\n");
-    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Allan & Shiphira — Photo cards</title><style>${styles}</style><style>body{margin:0;padding:24px;background:#f4f0e8}.studio-sheet{max-width:760px;margin:0 auto}.card-names{font-family:Georgia,serif}@media print{body{padding:0}.studio-sheet{max-width:none}}</style></head><body>${sheet.outerHTML}</body></html>`;
-    const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "allan-shiphira-photo-cards.html";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  async function downloadCards() {
+    const sheet = document.querySelector<HTMLElement>(".studio-sheet");
+    if (!sheet || !qr || downloading) return;
+    setDownloading(true);
+    setError("");
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import("html2canvas"), import("jspdf"),
+      ]);
+      await document.fonts.ready;
+      const canvas = await html2canvas(sheet, {
+        scale: 3,
+        backgroundColor: "#ffffff",
+        windowWidth: 1280,
+        onclone: async (doc) => {
+          // Use a fixed A4 layout, independent of the phone or browser size.
+          const clonedSheet = doc.querySelector<HTMLElement>(".studio-sheet")!;
+          const style = doc.createElement("style");
+          style.textContent = `.studio-sheet{width:718px!important;height:1043px!important;padding:0!important;box-shadow:none!important;grid-template-rows:1fr 1fr!important}.studio-cut{padding:15px!important}.photo-card{height:491px!important;padding:32px 12px 12px!important}.photo-card h2{font-size:18px!important}.photo-card p{font-size:11px!important;margin:5px 0!important}.card-qr{width:113px!important;height:113px!important;margin:5px auto!important}.card-monogram{font-size:36px!important;margin:6px auto!important}.card-portraits img{height:62px!important}.photo-card .card-gift,.photo-card .card-payment,.photo-card .card-scan,.photo-card .card-verse{font-size:10px!important}.card-names{font-size:27px!important}`;
+          doc.head.appendChild(style);
+          // Bake grayscale into portraits: canvas renderers do not reliably support CSS filters.
+          await Promise.all(Array.from(clonedSheet.querySelectorAll<HTMLImageElement>(".card-portraits img")).map(async img => {
+            await img.decode();
+            const portrait = doc.createElement("canvas");
+            portrait.width = img.naturalWidth; portrait.height = img.naturalHeight;
+            const ctx = portrait.getContext("2d")!;
+            ctx.drawImage(img, 0, 0);
+            const pixels = ctx.getImageData(0, 0, portrait.width, portrait.height);
+            for (let i = 0; i < pixels.data.length; i += 4) {
+              const gray = Math.round(.2126 * pixels.data[i] + .7152 * pixels.data[i+1] + .0722 * pixels.data[i+2]);
+              pixels.data[i] = pixels.data[i+1] = pixels.data[i+2] = gray;
+            }
+            ctx.putImageData(pixels, 0, 0);
+            img.src = portrait.toDataURL("image/png");
+            await img.decode();
+          }));
+        },
+      });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 10, 10, 190, 276);
+      pdf.save("allan-shiphira-photo-cards.pdf");
+    } catch {
+      setError("The PDF could not be created. Please try again, or choose smaller portrait images.");
+    } finally {
+      setDownloading(false);
+    }
   }
   return <main className="studio">
     <header className="studio-header"><a href="/">A<span>&</span>S <small>THE WEDDING</small></a><span>THE HOST’S DESK · 17 OCTOBER 2026</span></header>
@@ -53,9 +83,9 @@ export default function Studio() {
       <fieldset><legend>02 / YOUR CHILDHOOD PHOTOS · OPTIONAL</legend><div className="studio-upload"><label>Allan<input type="file" accept="image/*" onChange={event => upload(event.target.files?.[0],0)} /></label><label>Shiphira<input type="file" accept="image/*" onChange={event => upload(event.target.files?.[0],1)} /></label></div></fieldset>
       <p className="studio-help">Choose the original portraits to recreate the reference. Photos are included in your download and are not uploaded to a server.</p>
       {error && <p role="alert" className="studio-error">{error}</p>}
-      <button className="studio-print" disabled={!qr} onClick={downloadCards}>Download cards ↓</button>
+      <button className="studio-print" disabled={!qr || downloading} onClick={downloadCards}>{downloading ? "Creating PDF…" : "Download cards as PDF ↓"}</button>
       <div className="studio-actions">{qr && <><a href={qr} download="allan-shiphira-album-qr.png">Download QR ↓</a><a href={link} target="_blank" rel="noreferrer">Open album ↗</a></>}</div>
-      <p className="studio-help">Downloads all four cards as an HTML page with your photos and QR codes included. Open the saved file in any browser, even offline. Enable contributions in your album so guests can add photos.</p><p className="studio-help">Unlisted card-making tool. No sign-in is configured.</p>
+      <p className="studio-help">Downloads one A4 PDF with all four cards, your black-and-white portraits and stamped QR codes included. Enable contributions in your album so guests can add photos.</p><p className="studio-help">Unlisted card-making tool. No sign-in is configured.</p>
       </aside>
       <section className="studio-preview" aria-label="Printable photo cards"><div className="studio-preview-label"><span>YOUR TABLE CARDS</span><span>A4 / FOUR PER SHEET</span></div><div className="studio-sheet">
       {[0,1,2,3].map(n => <div className="studio-cut" key={n}><article className="photo-card"><h2>KARIBU SANA</h2>
@@ -67,3 +97,5 @@ export default function Studio() {
     </div>
   </main>;
 }
+
+
