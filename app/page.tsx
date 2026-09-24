@@ -387,29 +387,15 @@ export default function Home() {
     <button id="totop" className={showTop ? "show" : ""} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Back to top">↑</button>
 
     {rsvpOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && setRsvpOpen(false)}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="rsvp-title"><button className="close" onClick={() => setRsvpOpen(false)} aria-label="Close RSVP form">×</button>
-        {status === "done" ? <div className="success"><p className="eyebrow">Thank you</p><h2>Your RSVP is received.</h2>
-          <p>{attendance === "declined" ? "We're sorry you won't be able to join us, but thank you so much for letting us know." : "We can’t wait to celebrate with you."}</p>
-          {qrDataUrl && <div className="qr-result">
-            <img src={qrDataUrl} alt="Your personal check-in QR code" width={200} height={200} />
-            <p className="qr-note">This is your entry QR code — take a screenshot now and show it at the entrance on the day.</p>
-          </div>}
-          <button className="primary" onClick={() => setRsvpOpen(false)}>Close</button></div> : <>
-          <p className="eyebrow">Kindly respond by 23 September 2026</p><h2 id="rsvp-title">Will you join us?</h2>
-          <form onSubmit={submitRsvp}>
-            <label>Full name<input name="name" required /></label>
-            <label>Email<input name="email" type="email" required /></label>
-            <label>Phone (optional)<input name="phone" type="tel" /></label>
-            <fieldset className="attendance-choice"><legend>Will you attend?</legend>
-              <label className={`choice-yes ${attendance === "attending" ? "checked" : ""}`}><input type="radio" name="attendance" value="attending" required checked={attendance === "attending"} onChange={() => setAttendance("attending")}/>{icons.check}Yes, with pleasure!</label>
-              <label className={`choice-no ${attendance === "declined" ? "checked" : ""}`}><input type="radio" name="attendance" value="declined" checked={attendance === "declined"} onChange={() => setAttendance("declined")}/>{icons.alertCircle}Regretfully decline</label>
-            </fieldset>
-            {attendance !== "declined" && <>
-              <label>Adults<input name="adults" type="number" inputMode="numeric" min="1" max="4" value={adults} onChange={(e) => setAdults(clampCount(e.target.value, 1, 4))}/></label>
-              <label>Children (ages 0–12)<input name="children" type="number" inputMode="numeric" min="0" max="3" value={children} onChange={(e) => setChildren(clampCount(e.target.value, 0, 3))}/></label>
-            </>}
-            <button className="primary" disabled={status === "sending"}>{status === "sending" ? "Sending…" : <>{icons.sparkle}Confirm Attendance</>}</button>{status === "error" && <p className="form-error">We couldn’t save your response. Please try again.</p>}</form>
-        </>}
+      <div className="modal rsvp-closed" role="dialog" aria-modal="true" aria-labelledby="rsvp-title"><button className="close" onClick={() => setRsvpOpen(false)} aria-label="Close RSVP notice">×</button>
+        <div className="success">
+          <p className="rsvp-closed-heart" aria-hidden="true">🤍</p>
+          <h2 id="rsvp-title">RSVPs are now closed</h2>
+          <p>Thank you so much to everyone who RSVP’d! We’re now finalising everything for the big day and can’t wait to celebrate with you. 🥂🤍</p>
+          <p>If you had already confirmed your attendance but didn’t complete the RSVP, please contact the person who invited you directly.</p>
+          <p className="rsvp-closed-signoff">See you on the 17th! 🤍<br/><strong>Allan &amp; Shiphira</strong></p>
+          <button className="primary" onClick={() => setRsvpOpen(false)}>Close</button>
+        </div>
       </div>
     </div>}
   </main>;
